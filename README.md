@@ -13,7 +13,7 @@ cp .env.example .env
 ```
 Chỉnh sửa `.env` và thay mọi giá trị `REPLACE_WITH...` bằng mật khẩu dài, riêng biệt. Không bao giờ commit tệp `.env`.
 
-Tài khoản MySQL exporter được tạo bởi `mysql/init/01-exporter-user.sh`, sử dụng `MYSQL_EXPORTER_PASSWORD` trong `.env`; mật khẩu không được lưu trong script. Các script khởi tạo MySQL chỉ chạy khi volume cơ sở dữ liệu còn trống. Nếu volume đã tồn tại, hãy chạy script cập nhật tài khoản một lần bằng lệnh `docker compose exec db bash /docker-entrypoint-initdb.d/01-exporter-user.sh`.
+Tài khoản MySQL exporter được tạo/cập nhật bởi `mysql/init/01-exporter-user.sh`, sử dụng `MYSQL_EXPORTER_PASSWORD` trong `.env`; mật khẩu không được lưu trong script. Script khởi tạo tự chạy khi volume cơ sở dữ liệu còn trống. Nếu volume đã tồn tại hoặc đổi mật khẩu exporter, hãy chạy lại script an toàn bằng lệnh `docker compose exec db bash /docker-entrypoint-initdb.d/01-exporter-user.sh`. Lệnh này chỉ cập nhật tài khoản exporter, không xóa dữ liệu WordPress.
 
 ## 2. Tạo chứng chỉ HTTPS tự ký
 Linux/macOS/Git Bash:
@@ -45,8 +45,12 @@ Nếu dùng lệnh cũ, `docker-compose up -d` có tác dụng tương đương 
 - Kiểm tra chuyển hướng HTTP: http://localhost:8081/
 - phpMyAdmin: https://localhost:8443/dbadmin/
 - Grafana: http://localhost:3001/ (thông tin đăng nhập trong `.env`)
+- Dashboard **WordPress DevOps Overview** được provision tự động trong Grafana: http://localhost:3001/d/wordpress-devops-overview/wordpress-devops-overview. Dashboard gồm CPU/RAM container, Nginx, MySQL và trạng thái scrape.
 - Prometheus: có thể truy cập nội bộ tại `prometheus:9090`; chỉ mở cổng 9090 khi cần gỡ lỗi cục bộ.
 - Loki: endpoint nội bộ `loki:3100`, được truy cập thông qua datasource Loki trong Grafana.
+
+## 4.1. Kích hoạt giao diện quảng bá sản phẩm
+Theme `AURA Product` được mount từ `wordpress-theme/` vào container WordPress. Sau khi hoàn tất cài đặt WordPress, vào **Giao diện → Giao diện**, kích hoạt **AURA Product**. Có thể chỉnh nội dung phần mở đầu, giá và email tư vấn trong **Giao diện → Tùy biến → Nội dung trang chủ**. Mẫu hiện tại giới thiệu tai nghe AURA ONE; hãy thay nội dung mẫu trước khi xuất bản.
 
 ## 5. Kiểm tra
 ```bash
@@ -58,6 +62,7 @@ curl -I http://localhost:8081/
 Có thể tạm thời mở giao diện Prometheus bằng cách thêm `ports: ["9090:9090"]` vào service, sau đó tạo lại service. Không mở trực tiếp Prometheus/Loki trên máy chủ công khai nếu không có biện pháp kiểm soát truy cập.
 
 Trong Grafana, mở **Connections → Data sources** và xác nhận Prometheus cùng Loki đã được cấu hình. Nếu tạm thời mở cổng, hãy kiểm tra các target của Prometheus tại `http://localhost:9090/targets`.
+Trên dashboard **WordPress DevOps Overview**, xác nhận ô MySQL exporter hiển thị `UP` và các biểu đồ có dữ liệu. Nếu MySQL chưa `UP`, chạy lại script exporter theo mục 1 rồi khởi động lại `mysqld-exporter`.
 
 ## 6. Ví dụ truy vấn LogQL
 Trong Grafana → Explore → chọn Loki:
